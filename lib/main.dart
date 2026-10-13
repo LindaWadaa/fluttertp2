@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:waiting_room_app/waiting_room_manager.dart';
+import 'package:provider/provider.dart';
+import 'package:waiting_room_app/queue_provider.dart';
 
 void main() {
-  runApp(const WaitingRoomApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => QueueProvider(),
+      child: const WaitingRoomApp(),
+    ),
+  );
 }
 
 class WaitingRoomApp extends StatelessWidget {
@@ -14,39 +20,36 @@ class WaitingRoomApp extends StatelessWidget {
   }
 }
 
-class WaitingRoomScreen extends StatefulWidget {
+class WaitingRoomScreen extends StatelessWidget {
   const WaitingRoomScreen({super.key});
 
   @override
-  State<WaitingRoomScreen> createState() => _WaitingRoomScreenState();
-}
+  Widget build(BuildContext context) {
+    final queueProvider = context.watch<QueueProvider>();
+    final controller = TextEditingController();
 
-class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
-  final WaitingRoomManager _manager = WaitingRoomManager();
-  final TextEditingController _controller = TextEditingController();
+    void addClient() {
+      final clientName = controller.text.trim();
+      if (clientName.isEmpty) {
+        return;
+      }
 
-  void _addClient() {
-    final clientName = _controller.text.trim();
-    if (clientName.isEmpty) {
-      return;
+      context.read<QueueProvider>().addClient(clientName);
+      controller.clear();
     }
 
-    setState(() {
-      _manager.addClient(clientName);
-      _controller.clear();
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Local Waiting Room')),
+      appBar: AppBar(
+        title: const Text('Local Waiting Room'),
+        actions: [
+          IconButton(
+            key: const Key('nextClientButton'),
+            icon: const Icon(Icons.skip_next),
+            onPressed: context.read<QueueProvider>().nextClient,
+            tooltip: 'Next Client',
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -55,22 +58,22 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
               children: [
                 Expanded(
                   child: TextField(
-                    controller: _controller,
+                    controller: controller,
                     decoration: const InputDecoration(labelText: 'Client Name'),
-                    onSubmitted: (_) => _addClient(),
+                    onSubmitted: (_) => addClient(),
                   ),
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton(onPressed: _addClient, child: const Text('Add')),
+                ElevatedButton(onPressed: addClient, child: const Text('Add')),
               ],
             ),
             const SizedBox(height: 16),
-            Text('Clients in Queue: ${_manager.clients.length}'),
+            Text('Clients in Queue: ${queueProvider.clients.length}'),
             Expanded(
               child: ListView.builder(
-                itemCount: _manager.clients.length,
+                itemCount: queueProvider.clients.length,
                 itemBuilder: (context, index) {
-                  final clientName = _manager.clients[index];
+                  final clientName = queueProvider.clients[index];
                   return Card(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
@@ -83,11 +86,9 @@ class _WaitingRoomScreenState extends State<WaitingRoomScreen> {
                           const SizedBox(width: 12),
                           ElevatedButton(
                             key: ValueKey('remove-client-$index'),
-                            onPressed: () {
-                              setState(() {
-                                _manager.removeClientAt(index);
-                              });
-                            },
+                            onPressed: () => context
+                                .read<QueueProvider>()
+                                .removeClientAt(index),
                             child: const Text('Remove'),
                           ),
                         ],
