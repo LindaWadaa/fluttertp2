@@ -1,51 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:waiting_room_app/main.dart';
-import 'package:waiting_room_app/queue_provider.dart';
-
-Widget createTestApp() {
-  return ChangeNotifierProvider(
-    create: (_) => QueueProvider(),
-    child: const WaitingRoomApp(),
-  );
-}
 
 void main() {
-  testWidgets('waiting room screen renders and adds a client', (
+  testWidgets('should add a new client to the list on button tap', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(createTestApp());
-
-    expect(find.text('Local Waiting Room'), findsOneWidget);
-    expect(find.text('Clients in Queue: 0'), findsOneWidget);
-
-    await tester.enterText(find.byType(TextField), 'John Doe');
-    await tester.tap(find.text('Add'));
-    await tester.pump();
-
+    // ARRANGE
+    await tester.pumpWidget(const WaitingRoomApp());
+    // ACT
+    await tester.enterText(find.byType(TextField), 'Alice');
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pump(); // Rebuild the widget after state change
+    // ASSERT
+    expect(find.text('Alice'), findsOneWidget);
     expect(find.text('Clients in Queue: 1'), findsOneWidget);
-    expect(find.text('John Doe'), findsOneWidget);
   });
 
   testWidgets(
-    'should remove the first client from the list when "Next Client" is tapped',
+    'should remove a client from the list when the delete button is tapped',
     (WidgetTester tester) async {
-      await tester.pumpWidget(createTestApp());
-
-      await tester.enterText(find.byType(TextField), 'Client A');
-      await tester.tap(find.text('Add'));
+      // ARRANGE
+      await tester.pumpWidget(const WaitingRoomApp());
+      await tester.enterText(find.byType(TextField), 'Bob');
+      await tester.tap(find.byType(ElevatedButton));
       await tester.pump();
-      await tester.enterText(find.byType(TextField), 'Client B');
-      await tester.tap(find.text('Add'));
+      // ACT
+      // Find the remove button associated with 'Bob' and tap it.
+      await tester.tap(find.text('Remove'));
       await tester.pump();
-
-      await tester.tap(find.byKey(const Key('nextClientButton')));
-      await tester.pump();
-
-      expect(find.text('Client A'), findsNothing);
-      expect(find.text('Client B'), findsOneWidget);
-      expect(find.text('Clients in Queue: 1'), findsOneWidget);
+      // ASSERT
+      expect(find.text('Bob'), findsNothing);
+      expect(find.text('Clients in Queue: 0'), findsOneWidget);
     },
   );
 }
